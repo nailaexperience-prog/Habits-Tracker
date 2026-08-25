@@ -51,9 +51,16 @@ e reimportarlo su un altro dispositivo.
 
 ## Pubblicare l'app (GitHub Pages)
 
-Nel repository c'è il workflow `.github/workflows/deploy.yml`, che abilita Pages da solo
-(`configure-pages` con `enablement: true`) e pubblica a ogni push. Serve solo che il
-repository sia **pubblico**, altrimenti Pages richiede un piano GitHub a pagamento.
+Nel repository c'è il workflow `.github/workflows/deploy.yml`, che pubblica a ogni push.
+Due condizioni, una tantum:
+
+1. Il repository deve essere **pubblico** (su repo privati Pages richiede un piano a pagamento).
+2. La prima attivazione va fatta a mano: *Settings* → *Pages* → *Build and deployment* →
+   **Source: GitHub Actions**. Il token delle Action non ha i permessi per creare il sito Pages
+   da solo, quindi finché non lo attivi il passo `configure-pages` fallisce.
+
+Fatto questo, *Actions* → *Pubblica su GitHub Pages* → **Re-run all jobs**, e da lì in avanti
+ogni push pubblica da solo.
 
 L'indirizzo è `https://nailaexperience-prog.github.io/Habits-Tracker/`: aprilo dal telefono
 e aggiungilo alla schermata Home.
