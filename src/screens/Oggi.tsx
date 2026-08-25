@@ -11,6 +11,9 @@ import GiornoSheet from '../components/GiornoSheet'
 import { naviga } from '../App'
 import type { Habit } from '../domain/types'
 import { useToast } from '../components/toast'
+import { aderenzaGiorno, giornoDieta, kcalConsumate, kcalPianificate, pianoDelGiorno, prossimoPasto } from '../domain/dietaLog'
+import { EMOJI_PASTI, NOMI_PASTI, ORARI_PASTI } from '../domain/dieta'
+import { descriviPasto } from '../domain/promemoria'
 
 export default function Oggi() {
   const { state, dispatch, oggi } = useStore()
@@ -20,7 +23,7 @@ export default function Oggi() {
   const idx = useMemo(() => indexLogs(state.logs), [state.logs])
   const progresso = useMemo(() => calcolaProgresso(state, oggi, idx), [state, oggi, idx])
   const analisi = useMemo(() => analizzaSituazione(state, oggi), [state, oggi])
-  const prossimo = useMemo(() => prossimoPremio(state, oggi), [state, oggi])
+  const prossimoPremio_ = useMemo(() => prossimoPremio(state, oggi), [state, oggi])
 
   const attive = state.habits.filter((h) => !h.archived)
   const daFare = attive.filter((h) => h.kind !== 'quit' && statusOn(idx, h.id, oggi) !== 'done')
@@ -49,6 +52,13 @@ export default function Oggi() {
   }
 
   const osservazione = analisi.osservazioni[0]
+
+  const logDieta = giornoDieta(state, oggi)
+  const pastiOggi = pianoDelGiorno(oggi, logDieta.allenamento)
+  const prossimo = prossimoPasto(pastiOggi, logDieta, ORARI_PASTI)
+  const kcalOggi = kcalConsumate(pastiOggi, logDieta)
+  const kcalPiano = kcalPianificate(pastiOggi, logDieta)
+  const aderenzaDieta = aderenzaGiorno(pastiOggi, logDieta)
 
   return (
     <div className="schermata">
@@ -173,20 +183,45 @@ export default function Oggi() {
         </>
       )}
 
-      {prossimo && (
+      <section className="sezione">
+        <h2>Piano alimentare</h2>
+        <button className="card" style={{ width: '100%', textAlign: 'left' }} onClick={() => naviga('dieta')}>
+          {prossimo ? (
+            <>
+              <div className="riga-spazio">
+                <b style={{ fontSize: 15 }}>
+                  {EMOJI_PASTI[prossimo.pasto.pasto]} {NOMI_PASTI[prossimo.pasto.pasto]}
+                </b>
+                <span className="streak-pill">{prossimo.orario}</span>
+              </div>
+              <p className="piccolo" style={{ marginTop: 6 }}>{descriviPasto(prossimo.pasto, logDieta)}</p>
+            </>
+          ) : (
+            <b style={{ fontSize: 15 }}>🍽️ Tutti i pasti di oggi sono registrati</b>
+          )}
+          <div className="micro" style={{ marginTop: 10 }}>
+            {kcalOggi} / {kcalPiano} kcal · {aderenzaDieta.percentuale}% del piano
+          </div>
+          <div style={{ marginTop: 6 }}>
+            <Barra percentuale={kcalPiano > 0 ? kcalOggi / kcalPiano : 0} />
+          </div>
+        </button>
+      </section>
+
+      {prossimoPremio_ && (
         <section className="sezione">
           <h2>Prossimo premio</h2>
           <button className="card" style={{ width: '100%', textAlign: 'left' }} onClick={() => naviga('premi')}>
             <div className="riga">
-              <div style={{ fontSize: 30, filter: 'grayscale(1) opacity(.6)' }}>{prossimo.premio.emoji}</div>
+              <div style={{ fontSize: 30, filter: 'grayscale(1) opacity(.6)' }}>{prossimoPremio_.premio.emoji}</div>
               <div className="crescita">
-                <b>{prossimo.premio.nome}</b>
-                <div className="micro">{prossimo.premio.condizione}</div>
+                <b>{prossimoPremio_.premio.nome}</b>
+                <div className="micro">{prossimoPremio_.premio.condizione}</div>
                 <div className="mini-barra" style={{ ['--t' as string]: 'var(--accent)' }}>
-                  <i style={{ width: `${Math.round(prossimo.progresso * 100)}%` }} />
+                  <i style={{ width: `${Math.round(prossimoPremio_.progresso * 100)}%` }} />
                 </div>
               </div>
-              <div className="piccolo">{Math.round(prossimo.progresso * 100)}%</div>
+              <div className="piccolo">{Math.round(prossimoPremio_.progresso * 100)}%</div>
             </div>
           </button>
         </section>

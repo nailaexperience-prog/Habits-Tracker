@@ -2,6 +2,8 @@ import type { AppState, Habit, LogEntry } from './types'
 import { habitStats, indexLogs, type LogIndex } from './habits'
 import { addDays, daysBetween, formatCorto, nomeGiorno, parseISO, rangeISO, startOfWeek, todayISO } from './dates'
 import { schedaBenefici } from './benefits'
+import { andamento, pastiTrascurati } from './dietaLog'
+import { NOMI_PASTI } from './dieta'
 
 /* ------------------------------------------------------------------ */
 /* Analisi del testo delle note                                        */
@@ -334,7 +336,48 @@ export function analizzaSituazione(state: AppState, oggi: string = todayISO()): 
     }
   }
 
-  // 6. Nessun dato
+  // 6. Piano alimentare
+  const dieta = andamento(state, oggi, 14)
+  if (dieta.giorniRegistrati >= 3) {
+    const scarto = dieta.mediaKcal - dieta.mediaPiano
+    if (scarto > 250) {
+      oss.push({
+        tipo: 'attenzione',
+        titolo: `Dieta: ${scarto} kcal al giorno sopra il piano`,
+        testo: `Stai mangiando in media ${dieta.mediaKcal} kcal contro le ${dieta.mediaPiano} previste dallo schema. Guarda la voce "fuori piano": quasi sempre la differenza sta lì, non nei pasti principali.`,
+      })
+    } else if (scarto < -300) {
+      oss.push({
+        tipo: 'attenzione',
+        titolo: `Dieta: ${Math.abs(scarto)} kcal al giorno sotto il piano`,
+        testo: 'Mangiare troppo meno del previsto non accelera i risultati: fa perdere massa e ti fa arrivare affamato la sera. Controlla quali pasti stai saltando.',
+      })
+    } else {
+      oss.push({
+        tipo: 'vittoria',
+        titolo: `Dieta in linea: ${dieta.mediaKcal} kcal al giorno`,
+        testo: `Media degli ultimi giorni contro le ${dieta.mediaPiano} previste, con un'aderenza del ${dieta.mediaAderenza}%. Continua così.`,
+      })
+    }
+
+    const trascurati = pastiTrascurati(state, addDays(oggi, -29), oggi)
+    const peggiore = Object.entries(trascurati).sort((x, y) => y[1] - x[1])[0]
+    if (peggiore && peggiore[1] >= 3) {
+      oss.push({
+        tipo: 'pattern',
+        titolo: `Salti spesso: ${NOMI_PASTI[peggiore[0] as keyof typeof NOMI_PASTI]}`,
+        testo: `${peggiore[1]} volte nell'ultimo mese. Se è un problema di tempo, preparalo la sera prima; se è di fame, il pasto precedente è troppo leggero. Saltarlo sposta le calorie a fine giornata, dove pesano di più.`,
+      })
+    }
+  } else if (state.dieta.length === 0) {
+    oss.push({
+      tipo: 'consiglio',
+      titolo: 'Il piano alimentare è pronto ma vuoto',
+      testo: 'Apri la scheda Dieta e spunta i pasti man mano che li fai: dopo 4-5 giorni posso dirti se stai davvero seguendo lo schema e in che direzione vanno le calorie.',
+    })
+  }
+
+  // 7. Nessun dato
   if (attive.length === 0) {
     oss.push({
       tipo: 'consiglio',

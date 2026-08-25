@@ -35,7 +35,8 @@ function stato(habits: Habit[], logs: LogEntry[]): AppState {
     logs,
     journal: [],
     rewards: [],
-    settings: { reduceMotion: false, weekStartsMonday: true },
+    dieta: [],
+    settings: { reduceMotion: false, weekStartsMonday: true, promemoriaPasti: false },
   }
 }
 

@@ -1,6 +1,7 @@
 import type { AppState } from './types'
 import { habitStats, indexLogs, type LogIndex } from './habits'
 import { todayISO } from './dates'
+import { aderenzaGiorno, pianoDelGiorno } from './dietaLog'
 
 /** XP totali necessarie per raggiungere il livello indicato (livello 1 = 0 XP). */
 export function xpTotaliPerLivello(livello: number): number {
@@ -97,6 +98,17 @@ export function calcolaProgresso(
     if (sub > 0) dettaglio.push({ etichetta: habit.name, xp: sub })
     xp += sub
   }
+
+  // Piano alimentare: conta la costanza nel registrare e quanto segui lo schema.
+  let xpDieta = 0
+  for (const giorno of state.dieta) {
+    const ad = aderenzaGiorno(pianoDelGiorno(giorno.date, giorno.allenamento), giorno)
+    if (!ad.iniziato) continue
+    xpDieta += 5 + Math.round(ad.percentuale / 10)
+    if (ad.completo) xpDieta += 15
+  }
+  if (xpDieta) dettaglio.push({ etichetta: 'Piano alimentare', xp: xpDieta })
+  xp += xpDieta
 
   const xpDiario = state.journal.length * 6
   if (xpDiario) dettaglio.push({ etichetta: 'Diario', xp: xpDiario })

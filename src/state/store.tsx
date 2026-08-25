@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react'
-import type { AppState, DayStatus, Habit, JournalEntry, LogEntry } from '../domain/types'
+import type {
+  AppState, ConsumoSlot, DayStatus, DietaGiorno, ExtraAlimento, Habit, JournalEntry, LogEntry,
+} from '../domain/types'
 import { nuovaId } from '../domain/habits'
 import { todayISO } from '../domain/dates'
 import { nuoviPremi } from '../domain/rewards'
@@ -13,7 +15,8 @@ export const statoIniziale: AppState = {
   logs: [],
   journal: [],
   rewards: [],
-  settings: { reduceMotion: false, weekStartsMonday: true },
+  dieta: [],
+  settings: { reduceMotion: false, weekStartsMonday: true, promemoriaPasti: false },
 }
 
 export type Azione =
@@ -28,6 +31,12 @@ export type Azione =
   | { type: 'livelloVisto'; livello: number }
   | { type: 'impostazioni'; patch: Partial<AppState['settings']> }
   | { type: 'nome'; nome: string }
+  | { type: 'dietaScelta'; date: string; slotId: string; opzioneId: string }
+  | { type: 'dietaConsumo'; date: string; slotId: string; stato?: ConsumoSlot }
+  | { type: 'dietaAllenamento'; date: string; attivo: boolean }
+  | { type: 'dietaExtra'; date: string; extra: Omit<ExtraAlimento, 'id'> }
+  | { type: 'dietaRimuoviExtra'; date: string; id: string }
+  | { type: 'dietaNota'; date: string; nota: string }
   | { type: 'importa'; state: AppState }
   | { type: 'azzera' }
 
@@ -88,12 +97,55 @@ export function reducer(state: AppState, azione: Azione): AppState {
       return { ...state, settings: { ...state.settings, ...azione.patch } }
     case 'nome':
       return { ...state, profile: { ...state.profile, name: azione.nome } }
+    case 'dietaScelta':
+      return aggiornaDieta(state, azione.date, (g) => ({
+        ...g,
+        scelte: { ...g.scelte, [azione.slotId]: azione.opzioneId },
+      }))
+    case 'dietaConsumo':
+      return aggiornaDieta(state, azione.date, (g) => {
+        const consumo = { ...g.consumo }
+        if (azione.stato) consumo[azione.slotId] = azione.stato
+        else delete consumo[azione.slotId]
+        return { ...g, consumo }
+      })
+    case 'dietaAllenamento':
+      return aggiornaDieta(state, azione.date, (g) => ({ ...g, allenamento: azione.attivo }))
+    case 'dietaExtra':
+      return aggiornaDieta(state, azione.date, (g) => ({
+        ...g,
+        extra: [...g.extra, { ...azione.extra, id: nuovaId('ext') }],
+      }))
+    case 'dietaRimuoviExtra':
+      return aggiornaDieta(state, azione.date, (g) => ({
+        ...g,
+        extra: g.extra.filter((e) => e.id !== azione.id),
+      }))
+    case 'dietaNota':
+      return aggiornaDieta(state, azione.date, (g) => ({ ...g, nota: azione.nota }))
     case 'importa':
       return normalizzaStato(azione.state)
     case 'azzera':
       return { ...statoIniziale, profile: { ...statoIniziale.profile, createdAt: Date.now() } }
     default:
       return state
+  }
+}
+
+/** Applica una modifica al registro dieta di un giorno, creandolo se serve. */
+function aggiornaDieta(
+  state: AppState,
+  date: string,
+  patch: (g: DietaGiorno) => DietaGiorno,
+): AppState {
+  const esistente = state.dieta.find((d) => d.date === date)
+  const base: DietaGiorno = esistente ?? { date, scelte: {}, consumo: {}, extra: [] }
+  const aggiornato = patch(base)
+  return {
+    ...state,
+    dieta: esistente
+      ? state.dieta.map((d) => (d.date === date ? aggiornato : d))
+      : [...state.dieta, aggiornato],
   }
 }
 
@@ -112,9 +164,22 @@ export function normalizzaStato(raw: unknown): AppState {
     logs: Array.isArray(s.logs) ? s.logs.filter((l) => l && l.habitId && l.date) : [],
     journal: Array.isArray(s.journal) ? s.journal.filter((j) => j && j.id) : [],
     rewards: Array.isArray(s.rewards) ? s.rewards.filter((r) => r && r.id) : [],
+    dieta: Array.isArray(s.dieta)
+      ? s.dieta
+          .filter((d) => d && d.date)
+          .map((d) => ({
+            date: d.date,
+            scelte: d.scelte ?? {},
+            consumo: d.consumo ?? {},
+            allenamento: d.allenamento,
+            extra: Array.isArray(d.extra) ? d.extra : [],
+            nota: d.nota,
+          }))
+      : [],
     settings: {
       reduceMotion: s.settings?.reduceMotion ?? false,
       weekStartsMonday: s.settings?.weekStartsMonday ?? true,
+      promemoriaPasti: s.settings?.promemoriaPasti ?? false,
     },
   }
 }

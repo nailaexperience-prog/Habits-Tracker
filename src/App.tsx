@@ -7,6 +7,7 @@ import Oggi from './screens/Oggi'
 import Abitudini from './screens/Abitudini'
 import DettaglioAbitudine from './screens/DettaglioAbitudine'
 import Calendario from './screens/Calendario'
+import Dieta from './screens/Dieta'
 import Diario from './screens/Diario'
 import Premi from './screens/Premi'
 import Impostazioni from './screens/Impostazioni'
@@ -27,6 +28,7 @@ export function naviga(a: string) {
 const VOCI = [
   { id: 'oggi', ico: '🎯', label: 'Oggi' },
   { id: 'abitudini', ico: '📋', label: 'Abitudini' },
+  { id: 'dieta', ico: '🥗', label: 'Dieta' },
   { id: 'calendario', ico: '🗓️', label: 'Calendario' },
   { id: 'diario', ico: '📓', label: 'Diario' },
   { id: 'premi', ico: '🏆', label: 'Premi' },
@@ -64,6 +66,7 @@ export default function App() {
         return percorso.parametro
           ? <DettaglioAbitudine id={percorso.parametro} />
           : <Abitudini />
+      case 'dieta': return <Dieta />
       case 'calendario': return <Calendario />
       case 'diario': return <Diario />
       case 'premi': return <Premi />

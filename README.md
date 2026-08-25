@@ -34,6 +34,20 @@ e — sì — anche le ricadute registrate onestamente. Salendo di livello cambi
 **Calendario modificabile.** Puoi correggere qualsiasi giorno passato, aggiungere o togliere una
 registrazione, allegare una nota e un umore.
 
+**Piano alimentare personale.** La scheda *Dieta* contiene lo schema del nutrizionista giorno per
+giorno (7 giorni × 5 pasti) con le grammature esatte. Per ogni portata scegli fra le alternative
+previste dallo schema e segni *tutto / metà / saltato*; l'app somma le calorie in tempo reale,
+tiene il conto degli alimenti fuori piano, mostra media e andamento su 14 giorni e ti dice se stai
+andando sopra o sotto il piano. Include la sostituzione della merenda nei giorni di allenamento,
+la frutta e verdura di stagione del mese corrente e le regole generali del nutrizionista. Quando
+la giornata è completa, l'abitudine "alimentazione sana" si spunta da sola.
+
+**Promemoria dei pasti.** Due strade: le notifiche del browser (funzionano finché l'app resta
+aperta, anche in secondo piano) e l'esportazione in un file `.ics` con 35 promemoria settimanali —
+uno per ogni pasto di ogni giorno, con l'elenco di cosa mangiare — da importare nel calendario del
+telefono, dove le notifiche arrivano anche ad app chiusa. Senza un server non è possibile mandare
+push vere, e l'app lo dice apertamente invece di fingere.
+
 **Diario con analisi.** L'app legge quello che scrivi e ne ricava: il tono generale, i temi
 ricorrenti (stress, sonno, noia, contesti sociali, ansia, cibo...), il giorno della settimana in
 cui salti più spesso, il confronto con la settimana precedente e le abitudini che stanno
@@ -81,7 +95,8 @@ Le icone della PWA si rigenerano con `node scripts/genera-icone.mjs`.
 
 ```
 src/
-  domain/      logica pura e testata: date, statistiche, XP, premi, benefici, analisi
+  domain/      logica pura e testata: date, statistiche, XP, premi, benefici, analisi,
+               piano alimentare (dieta.ts, dietaLog.ts) e promemoria (.ics)
   state/       store con reducer e persistenza su localStorage
   components/  pezzi riutilizzabili (anello livello, sheet, riga abitudine, form)
   screens/     Oggi, Abitudini, Dettaglio, Calendario, Diario, Premi, Impostazioni
@@ -94,3 +109,9 @@ giorno nel passato aggiorna correttamente livelli e premi.
 
 Le informazioni sui benefici sono divulgative, basate su letteratura pubblica di divulgazione
 sanitaria, e non sostituiscono il parere di un medico.
+
+Il piano alimentare riproduce lo schema del Dott. Igor Mione (biologo nutrizionista) emesso
+l'11/06/2026 con validità indicata di 3 settimane. Le calorie sono **stime** calcolate dalle
+grammature dello schema con tabelle di composizione degli alimenti: servono a leggere l'andamento,
+non sono un dato clinico. Per qualsiasi modifica allo schema, il riferimento resta il
+nutrizionista.

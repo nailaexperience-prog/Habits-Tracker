@@ -70,6 +70,30 @@ export interface UnlockedReward {
   seen?: boolean
 }
 
+/** Stato di consumo di uno slot del piano alimentare. */
+export type ConsumoSlot = 'tutto' | 'meta' | 'saltato'
+
+export interface ExtraAlimento {
+  id: string
+  nome: string
+  kcal: number
+}
+
+/** Registro giornaliero del piano alimentare. */
+export interface DietaGiorno {
+  /** YYYY-MM-DD */
+  date: string
+  /** slotId -> id dell'opzione scelta fra le alternative. */
+  scelte: Record<string, string>
+  /** slotId -> quanto ne hai mangiato. */
+  consumo: Record<string, ConsumoSlot>
+  /** Giorno di allenamento: la merenda viene sostituita. */
+  allenamento?: boolean
+  /** Alimenti fuori piano registrati per il conteggio calorico. */
+  extra: ExtraAlimento[]
+  nota?: string
+}
+
 export interface AppState {
   version: number
   profile: {
@@ -84,8 +108,11 @@ export interface AppState {
   logs: LogEntry[]
   journal: JournalEntry[]
   rewards: UnlockedReward[]
+  dieta: DietaGiorno[]
   settings: {
     reduceMotion: boolean
     weekStartsMonday: boolean
+    /** Promemoria pasti attivi (notifiche mentre l'app è aperta). */
+    promemoriaPasti: boolean
   }
 }

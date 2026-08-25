@@ -1,7 +1,8 @@
 import type { AppState, HabitCategory } from './types'
 import { habitStats, indexLogs, type HabitStats, type LogIndex } from './habits'
-import { daysBetween, rangeISO, todayISO } from './dates'
+import { addDays, daysBetween, rangeISO, todayISO } from './dates'
 import { calcolaProgresso } from './xp'
+import { aderenzaGiorno, pianoDelGiorno } from './dietaLog'
 
 export type Tier = 'bronzo' | 'argento' | 'oro' | 'leggendario'
 
@@ -20,6 +21,12 @@ export interface ContestoPremi {
   ricadute: number
   /** Giorni puliti raggiunti dopo l'ultima ricaduta, su abitudini "quit". */
   rinascita: number
+  /** Giorni con almeno una registrazione sul piano alimentare. */
+  dietaRegistrati: number
+  /** Giorni in cui il piano è stato seguito per intero. */
+  dietaCompleti: number
+  /** Giorni consecutivi con il piano seguito per intero, fino a oggi. */
+  dietaSerie: number
 }
 
 export interface Premio {
@@ -269,6 +276,36 @@ export const CATALOGO_PREMI: Premio[] = [
     progresso: (c) => clamp(c.state.habits.filter((h) => !h.archived).length / 3),
   },
   {
+    id: 'dieta-inizio',
+    nome: 'Primo Pasto Tracciato',
+    emoji: '🥗',
+    tier: 'bronzo',
+    condizione: 'Registra il primo giorno del piano alimentare',
+    messaggio: 'Hai iniziato a misurare quello che mangi. Da qui in poi non vai più a memoria.',
+    test: (c) => c.dietaRegistrati >= 1,
+    progresso: (c) => clamp(c.dietaRegistrati),
+  },
+  {
+    id: 'dieta-settimana',
+    nome: 'Settimana in Regola',
+    emoji: '🍽️',
+    tier: 'oro',
+    condizione: '7 giorni consecutivi con il piano seguito per intero',
+    messaggio: 'Sette giorni pieni rispettando lo schema. Questa è la parte che quasi nessuno regge.',
+    test: (c) => c.dietaSerie >= 7,
+    progresso: (c) => clamp(c.dietaSerie / 7),
+  },
+  {
+    id: 'dieta-30',
+    nome: 'Un Mese di Dati',
+    emoji: '📊',
+    tier: 'argento',
+    condizione: '30 giorni registrati sul piano alimentare',
+    messaggio: 'Trenta giorni tracciati: ora hai numeri veri su cui ragionare, non sensazioni.',
+    test: (c) => c.dietaRegistrati >= 30,
+    progresso: (c) => clamp(c.dietaRegistrati / 30),
+  },
+  {
     id: 'livello-5',
     nome: 'Livello 5',
     emoji: '🥉',
@@ -347,6 +384,23 @@ export function contestoPremi(state: AppState, today: string = todayISO()): Cont
     }
   }
 
+  // Piano alimentare
+  const giorniDieta = [...state.dieta]
+    .map((g) => ({ giorno: g, ad: aderenzaGiorno(pianoDelGiorno(g.date, g.allenamento), g) }))
+    .filter((x) => x.ad.iniziato)
+    .sort((x, y) => (x.giorno.date < y.giorno.date ? -1 : 1))
+  const dietaRegistrati = giorniDieta.length
+  const dietaCompleti = giorniDieta.filter((x) => x.ad.completo).length
+  let dietaSerie = 0
+  let cursore = today
+  const perData = new Map(giorniDieta.map((x) => [x.giorno.date, x.ad]))
+  // La giornata di oggi non ancora completata non spezza la serie.
+  if (!perData.get(today)?.completo) cursore = addDays(today, -1)
+  while (perData.get(cursore)?.completo) {
+    dietaSerie++
+    cursore = addDays(cursore, -1)
+  }
+
   const progresso = calcolaProgresso(state, today, idx)
 
   return {
@@ -362,6 +416,9 @@ export function contestoPremi(state: AppState, today: string = todayISO()): Cont
     settimaneOkMax,
     ricadute,
     rinascita,
+    dietaRegistrati,
+    dietaCompleti,
+    dietaSerie,
   }
 }
 
