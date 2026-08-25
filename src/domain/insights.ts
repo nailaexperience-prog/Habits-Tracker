@@ -3,6 +3,8 @@ import { habitStats, indexLogs, type LogIndex } from './habits'
 import { addDays, daysBetween, formatCorto, nomeGiorno, parseISO, rangeISO, startOfWeek, todayISO } from './dates'
 import { schedaBenefici } from './benefits'
 import { andamento, pastiTrascurati } from './dietaLog'
+import { programmaConfigurato, prossimaScheda, sessioniDellaSettimana, settimanaDi, statoPalestra } from './allenamentoLog'
+import { PROGRAMMA } from './allenamento'
 import { NOMI_PASTI } from './dieta'
 
 /* ------------------------------------------------------------------ */
@@ -377,7 +379,35 @@ export function analizzaSituazione(state: AppState, oggi: string = todayISO()): 
     })
   }
 
-  // 7. Nessun dato
+  // 7. Palestra
+  if (programmaConfigurato(state.programma)) {
+    const palestra = statoPalestra(state, oggi)
+    const previste = state.programma.giorni.length
+    const fatte = sessioniDellaSettimana(state.allenamenti, oggi).length
+    const giorniRimasti = 7 - daysBetween(startOfWeek(oggi, true), oggi)
+    if (fatte < previste && previste - fatte >= giorniRimasti) {
+      oss.push({
+        tipo: 'attenzione',
+        titolo: `Palestra: ${fatte}/${previste} sessioni questa settimana`,
+        testo: `Restano ${giorniRimasti} giorni e ${previste - fatte} sessioni. Se non ci stai, fanne una corta: i primi tre esercizi della scheda ${palestra.prossima} valgono più di un allenamento saltato.`,
+      })
+    } else if (fatte >= previste) {
+      oss.push({
+        tipo: 'vittoria',
+        titolo: `Palestra: settimana chiusa (${fatte}/${previste})`,
+        testo: `Sei alla settimana ${Math.min(palestra.settimana, PROGRAMMA.settimane)} di ${PROGRAMMA.settimane} del programma. Prossima volta tocca la scheda ${prossimaScheda(state.allenamenti)}.`,
+      })
+    }
+    if (settimanaDi(state.programma, oggi) > PROGRAMMA.settimane) {
+      oss.push({
+        tipo: 'consiglio',
+        titolo: 'Il programma di 5 settimane è finito',
+        testo: 'Chiedi la scheda nuova al personal trainer: continuare a ripetere l\'ultima settimana ha rendimenti sempre più bassi.',
+      })
+    }
+  }
+
+  // 8. Nessun dato
   if (attive.length === 0) {
     oss.push({
       tipo: 'consiglio',

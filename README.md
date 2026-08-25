@@ -39,14 +39,29 @@ giorno (7 giorni × 5 pasti) con le grammature esatte. Per ogni portata scegli f
 previste dallo schema e segni *tutto / metà / saltato*; l'app somma le calorie in tempo reale,
 tiene il conto degli alimenti fuori piano, mostra media e andamento su 14 giorni e ti dice se stai
 andando sopra o sotto il piano. Include la sostituzione della merenda nei giorni di allenamento,
-la frutta e verdura di stagione del mese corrente e le regole generali del nutrizionista. Quando
+la frutta e verdura di stagione del mese corrente e le regole generali del nutrizionista.
+
+Il programma di allenamento riproduce le schede "Ipertrofia A" e "Ipertrofia B" di Jacopo Palloni
+(personal trainer) su 5 settimane. I carichi suggeriti sono calcolati dalla variazione di
+ripetizioni e buffer fra una settimana e l'altra: sono un punto di partenza, non una prescrizione.
+Il riferimento resta il personal trainer. Quando
 la giornata è completa, l'abitudine "alimentazione sana" si spunta da sola.
 
-**Promemoria dei pasti.** Due strade: le notifiche del browser (funzionano finché l'app resta
+**Scheda di allenamento.** La sezione *Palestra* contiene il programma del personal trainer:
+schede A e B con la prescrizione di ogni esercizio per ciascuna delle 5 settimane (serie,
+ripetizioni, buffer, recupero). L'app decide quale scheda tocca — A e B si alternano sempre, e la
+sessione col personal trainer non rompe l'alternanza — ti mostra i carichi dell'ultima volta e
+propone quello di oggi seguendo la regola del PT: quando la scheda chiede meno ripetizioni o meno
+buffer il carico sale, quando ne chiede di più scende. Registri peso e ripetizioni serie per serie,
+e la sezione *Carichi* mostra la progressione di ogni esercizio nel tempo. Chiudere l'allenamento
+spunta l'abitudine "palestra" della giornata.
+
+**Promemoria dei pasti e degli allenamenti.** Due strade: le notifiche del browser (funzionano finché l'app resta
 aperta, anche in secondo piano) e l'esportazione in un file `.ics` con 35 promemoria settimanali —
 uno per ogni pasto di ogni giorno, con l'elenco di cosa mangiare — da importare nel calendario del
-telefono, dove le notifiche arrivano anche ad app chiusa. Senza un server non è possibile mandare
-push vere, e l'app lo dice apertamente invece di fingere.
+telefono, dove le notifiche arrivano anche ad app chiusa. Lo stesso vale per gli allenamenti, con
+un promemoria ricorrente nei giorni scelti. Senza un server non è possibile mandare push vere, e
+l'app lo dice apertamente invece di fingere.
 
 **Diario con analisi.** L'app legge quello che scrivi e ne ricava: il tono generale, i temi
 ricorrenti (stress, sonno, noia, contesti sociali, ansia, cibo...), il giorno della settimana in
@@ -96,7 +111,8 @@ Le icone della PWA si rigenerano con `node scripts/genera-icone.mjs`.
 ```
 src/
   domain/      logica pura e testata: date, statistiche, XP, premi, benefici, analisi,
-               piano alimentare (dieta.ts, dietaLog.ts) e promemoria (.ics)
+               piano alimentare (dieta.ts, dietaLog.ts), programma di allenamento
+               (allenamento.ts, allenamentoLog.ts) e promemoria (.ics)
   state/       store con reducer e persistenza su localStorage
   components/  pezzi riutilizzabili (anello livello, sheet, riga abitudine, form)
   screens/     Oggi, Abitudini, Dettaglio, Calendario, Diario, Premi, Impostazioni

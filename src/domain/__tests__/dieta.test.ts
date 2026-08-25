@@ -22,6 +22,8 @@ function stato(dieta: DietaGiorno[]): AppState {
     journal: [],
     rewards: [],
     dieta,
+    allenamenti: [],
+    programma: { programmaId: 'palloni-ipertrofia-5w', inizio: '', giorni: [0, 1, 3, 4], orario: '18:30' },
     settings: { reduceMotion: false, weekStartsMonday: true, promemoriaPasti: false },
   }
 }

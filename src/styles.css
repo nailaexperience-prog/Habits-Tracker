@@ -393,6 +393,32 @@ p { margin: 0; }
 .mini-barra { height: 4px; border-radius: 999px; background: rgba(0,0,0,.45); margin-top: 9px; overflow: hidden; }
 .mini-barra > i { display: block; height: 100%; background: var(--t, var(--accent)); border-radius: 999px; }
 
+/* Selettore a segmenti (dieta / palestra) */
+.segmenti {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin: 18px 0 -6px;
+  background: rgba(0, 0, 0, .35);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.segmenti button {
+  padding: 10px 8px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--testo-2);
+  transition: background .2s, color .2s, transform .12s;
+}
+.segmenti button:active { transform: scale(.96); }
+.segmenti button.attivo {
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  color: #fff;
+  box-shadow: 0 8px 22px -12px rgba(124, 92, 255, .9);
+}
+
 /* ------------------------------------------------------------------ */
 /* Navigazione                                                         */
 /* ------------------------------------------------------------------ */

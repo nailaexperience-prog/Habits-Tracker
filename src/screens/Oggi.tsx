@@ -4,7 +4,7 @@ import { habitStats, indexLogs, statusOn } from '../domain/habits'
 import { calcolaProgresso } from '../domain/xp'
 import { analizzaSituazione } from '../domain/insights'
 import { prossimoPremio } from '../domain/rewards'
-import { addDays, formatLungo, nomeGiorno } from '../domain/dates'
+import { addDays, formatLungo, nomeGiorno, parseISO } from '../domain/dates'
 import { AnelloLivello, Barra, Strisce, Vuoto } from '../components/ui'
 import RigaAbitudine from '../components/RigaAbitudine'
 import GiornoSheet from '../components/GiornoSheet'
@@ -14,6 +14,8 @@ import { useToast } from '../components/toast'
 import { aderenzaGiorno, giornoDieta, kcalConsumate, kcalPianificate, pianoDelGiorno, prossimoPasto } from '../domain/dietaLog'
 import { EMOJI_PASTI, NOMI_PASTI, ORARI_PASTI } from '../domain/dieta'
 import { descriviPasto } from '../domain/promemoria'
+import { programmaConfigurato, sessioneDelGiorno, sessioniDellaSettimana, settimanaDi, statoPalestra } from '../domain/allenamentoLog'
+import { PROGRAMMA, scheda } from '../domain/allenamento'
 
 export default function Oggi() {
   const { state, dispatch, oggi } = useStore()
@@ -59,6 +61,10 @@ export default function Oggi() {
   const kcalOggi = kcalConsumate(pastiOggi, logDieta)
   const kcalPiano = kcalPianificate(pastiOggi, logDieta)
   const aderenzaDieta = aderenzaGiorno(pastiOggi, logDieta)
+
+  const palestra = statoPalestra(state, oggi)
+  const sessioneOggi = sessioneDelGiorno(state.allenamenti, oggi)
+  const giornoDiAllenamento = state.programma.giorni.includes((parseISO(oggi).getDay() + 6) % 7)
 
   return (
     <div className="schermata">
@@ -185,7 +191,7 @@ export default function Oggi() {
 
       <section className="sezione">
         <h2>Piano alimentare</h2>
-        <button className="card" style={{ width: '100%', textAlign: 'left' }} onClick={() => naviga('dieta')}>
+        <button className="card" style={{ width: '100%', textAlign: 'left' }} onClick={() => naviga('piano')}>
           {prossimo ? (
             <>
               <div className="riga-spazio">
@@ -207,6 +213,31 @@ export default function Oggi() {
           </div>
         </button>
       </section>
+
+      {programmaConfigurato(state.programma) && (
+        <section className="sezione">
+          <h2>Allenamento</h2>
+          <button className="card" style={{ width: '100%', textAlign: 'left' }} onClick={() => naviga('piano/palestra')}>
+            {sessioneOggi ? (
+              <b style={{ fontSize: 15 }}>
+                {sessioneOggi.tipo === 'PT' ? '🧑‍🏫 Oggi sessione col personal trainer' : `🏋️ Oggi stai facendo la scheda ${sessioneOggi.tipo}`}
+              </b>
+            ) : (
+              <>
+                <b style={{ fontSize: 15 }}>🏋️ Tocca la scheda {palestra.prossima}</b>
+                <p className="piccolo" style={{ marginTop: 4 }}>
+                  {scheda(palestra.prossima).esercizi.slice(0, 3).map((e) => e.nome).join(' · ')}…
+                </p>
+              </>
+            )}
+            <div className="micro" style={{ marginTop: 10 }}>
+              Settimana {Math.min(settimanaDi(state.programma, oggi), PROGRAMMA.settimane)}/{PROGRAMMA.settimane} ·
+              {' '}{sessioniDellaSettimana(state.allenamenti, oggi).length}/{state.programma.giorni.length} sessioni
+              {giornoDiAllenamento && !sessioneOggi ? ' · oggi è giorno di palestra' : ''}
+            </div>
+          </button>
+        </section>
+      )}
 
       {prossimoPremio_ && (
         <section className="sezione">

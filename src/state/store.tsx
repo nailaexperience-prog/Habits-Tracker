@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react'
 import type {
-  AppState, ConsumoSlot, DayStatus, DietaGiorno, ExtraAlimento, Habit, JournalEntry, LogEntry,
+  AppState, ConsumoSlot, DayStatus, DietaGiorno, EsercizioEseguito, ExtraAlimento, Habit,
+  JournalEntry, LogEntry, SerieEseguita, Sessione,
 } from '../domain/types'
+import { CONFIG_INIZIALE } from '../domain/allenamentoLog'
 import { nuovaId } from '../domain/habits'
 import { todayISO } from '../domain/dates'
 import { nuoviPremi } from '../domain/rewards'
@@ -16,6 +18,8 @@ export const statoIniziale: AppState = {
   journal: [],
   rewards: [],
   dieta: [],
+  allenamenti: [],
+  programma: CONFIG_INIZIALE,
   settings: { reduceMotion: false, weekStartsMonday: true, promemoriaPasti: false },
 }
 
@@ -37,6 +41,12 @@ export type Azione =
   | { type: 'dietaExtra'; date: string; extra: Omit<ExtraAlimento, 'id'> }
   | { type: 'dietaRimuoviExtra'; date: string; id: string }
   | { type: 'dietaNota'; date: string; nota: string }
+  | { type: 'programma'; patch: Partial<AppState['programma']> }
+  | { type: 'sessioneAggiungi'; sessione: Sessione }
+  | { type: 'sessioneElimina'; id: string }
+  | { type: 'sessioneSerie'; id: string; esercizioId: string; indice: number; patch: SerieEseguita }
+  | { type: 'sessioneNota'; id: string; nota: string; esercizioId?: string }
+  | { type: 'sessioneCompleta'; id: string; completata: boolean }
   | { type: 'importa'; state: AppState }
   | { type: 'azzera' }
 
@@ -123,6 +133,37 @@ export function reducer(state: AppState, azione: Azione): AppState {
       }))
     case 'dietaNota':
       return aggiornaDieta(state, azione.date, (g) => ({ ...g, nota: azione.nota }))
+    case 'programma':
+      return { ...state, programma: { ...state.programma, ...azione.patch } }
+    case 'sessioneAggiungi':
+      return { ...state, allenamenti: [...state.allenamenti, azione.sessione] }
+    case 'sessioneElimina':
+      return { ...state, allenamenti: state.allenamenti.filter((s) => s.id !== azione.id) }
+    case 'sessioneSerie':
+      return aggiornaSessione(state, azione.id, (s) => ({
+        ...s,
+        esercizi: s.esercizi.map((e) =>
+          e.esercizioId === azione.esercizioId
+            ? {
+                ...e,
+                serie: e.serie.map((v, i) => (i === azione.indice ? { ...v, ...azione.patch } : v)),
+              }
+            : e,
+        ),
+      }))
+    case 'sessioneNota':
+      return aggiornaSessione(state, azione.id, (s) =>
+        azione.esercizioId
+          ? {
+              ...s,
+              esercizi: s.esercizi.map((e: EsercizioEseguito) =>
+                e.esercizioId === azione.esercizioId ? { ...e, nota: azione.nota } : e,
+              ),
+            }
+          : { ...s, nota: azione.nota },
+      )
+    case 'sessioneCompleta':
+      return aggiornaSessione(state, azione.id, (s) => ({ ...s, completata: azione.completata }))
     case 'importa':
       return normalizzaStato(azione.state)
     case 'azzera':
@@ -147,6 +188,10 @@ function aggiornaDieta(
       ? state.dieta.map((d) => (d.date === date ? aggiornato : d))
       : [...state.dieta, aggiornato],
   }
+}
+
+function aggiornaSessione(state: AppState, id: string, patch: (s: Sessione) => Sessione): AppState {
+  return { ...state, allenamenti: state.allenamenti.map((s) => (s.id === id ? patch(s) : s)) }
 }
 
 /** Ripulisce uno stato caricato da disco o importato, tollerando dati incompleti. */
@@ -176,6 +221,21 @@ export function normalizzaStato(raw: unknown): AppState {
             nota: d.nota,
           }))
       : [],
+    allenamenti: Array.isArray(s.allenamenti)
+      ? s.allenamenti
+          .filter((a) => a && a.id && a.date)
+          .map((a) => ({
+            ...a,
+            esercizi: Array.isArray(a.esercizi) ? a.esercizi : [],
+            settimana: a.settimana ?? 1,
+          }))
+      : [],
+    programma: {
+      programmaId: s.programma?.programmaId ?? CONFIG_INIZIALE.programmaId,
+      inizio: s.programma?.inizio ?? '',
+      giorni: Array.isArray(s.programma?.giorni) ? s.programma.giorni : CONFIG_INIZIALE.giorni,
+      orario: s.programma?.orario ?? CONFIG_INIZIALE.orario,
+    },
     settings: {
       reduceMotion: s.settings?.reduceMotion ?? false,
       weekStartsMonday: s.settings?.weekStartsMonday ?? true,

@@ -94,6 +94,42 @@ export interface DietaGiorno {
   nota?: string
 }
 
+/** Una serie eseguita: carico usato e ripetizioni chiuse. */
+export interface SerieEseguita {
+  peso?: number
+  reps?: number
+}
+
+export interface EsercizioEseguito {
+  esercizioId: string
+  serie: SerieEseguita[]
+  nota?: string
+}
+
+/** Una sessione di allenamento registrata. */
+export interface Sessione {
+  id: string
+  /** YYYY-MM-DD */
+  date: string
+  /** Scheda A, scheda B oppure sessione con il personal trainer. */
+  tipo: 'A' | 'B' | 'PT'
+  /** Settimana del programma in cui è avvenuta (1-5). */
+  settimana: number
+  esercizi: EsercizioEseguito[]
+  completata?: boolean
+  nota?: string
+}
+
+/** Configurazione del programma di allenamento in corso. */
+export interface ConfigProgramma {
+  programmaId: string
+  /** Lunedì della settimana 1 del programma. Vuoto = non ancora configurato. */
+  inizio: string
+  /** Giorni in cui ti alleni: 0 = lunedì ... 6 = domenica. */
+  giorni: number[]
+  orario: string
+}
+
 export interface AppState {
   version: number
   profile: {
@@ -109,6 +145,8 @@ export interface AppState {
   journal: JournalEntry[]
   rewards: UnlockedReward[]
   dieta: DietaGiorno[]
+  allenamenti: Sessione[]
+  programma: ConfigProgramma
   settings: {
     reduceMotion: boolean
     weekStartsMonday: boolean

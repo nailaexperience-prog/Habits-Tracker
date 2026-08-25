@@ -3,6 +3,8 @@ import { habitStats, indexLogs, type HabitStats, type LogIndex } from './habits'
 import { addDays, daysBetween, rangeISO, todayISO } from './dates'
 import { calcolaProgresso } from './xp'
 import { aderenzaGiorno, pianoDelGiorno } from './dietaLog'
+import { progressione } from './allenamentoLog'
+import { PROGRAMMA } from './allenamento'
 
 export type Tier = 'bronzo' | 'argento' | 'oro' | 'leggendario'
 
@@ -27,6 +29,10 @@ export interface ContestoPremi {
   dietaCompleti: number
   /** Giorni consecutivi con il piano seguito per intero, fino a oggi. */
   dietaSerie: number
+  /** Sessioni di allenamento registrate. */
+  sessioni: number
+  /** Esercizi in cui il carico massimo è salito rispetto alla prima volta. */
+  eserciziMigliorati: number
 }
 
 export interface Premio {
@@ -306,6 +312,46 @@ export const CATALOGO_PREMI: Premio[] = [
     progresso: (c) => clamp(c.dietaRegistrati / 30),
   },
   {
+    id: 'palestra-inizio',
+    nome: 'Prima Sessione',
+    emoji: '🏋️',
+    tier: 'bronzo',
+    condizione: 'Registra il primo allenamento',
+    messaggio: 'Primo allenamento a referto. Da adesso i carichi non li ricordi più a memoria.',
+    test: (c) => c.sessioni >= 1,
+    progresso: (c) => clamp(c.sessioni),
+  },
+  {
+    id: 'palestra-carico',
+    nome: 'Più Forte di Prima',
+    emoji: '💪',
+    tier: 'argento',
+    condizione: 'Aumenta il carico su almeno un esercizio rispetto alla prima volta',
+    messaggio: 'Il numero sul bilanciere è salito. Questa è la prova che il programma sta funzionando.',
+    test: (c) => c.eserciziMigliorati >= 1,
+    progresso: (c) => clamp(c.eserciziMigliorati),
+  },
+  {
+    id: 'palestra-12',
+    nome: 'Dodici Sessioni',
+    emoji: '🔩',
+    tier: 'argento',
+    condizione: '12 allenamenti registrati',
+    messaggio: 'Dodici volte in palestra. Il corpo ha iniziato ad adattarsi sul serio.',
+    test: (c) => c.sessioni >= 12,
+    progresso: (c) => clamp(c.sessioni / 12),
+  },
+  {
+    id: 'palestra-programma',
+    nome: 'Programma Portato a Casa',
+    emoji: '🏁',
+    tier: 'oro',
+    condizione: '20 allenamenti registrati, quanto dura il programma completo',
+    messaggio: 'Cinque settimane di programma completate senza saltare. Ora la scheda nuova te la sei guadagnata.',
+    test: (c) => c.sessioni >= 20,
+    progresso: (c) => clamp(c.sessioni / 20),
+  },
+  {
     id: 'livello-5',
     nome: 'Livello 5',
     emoji: '🥉',
@@ -401,6 +447,16 @@ export function contestoPremi(state: AppState, today: string = todayISO()): Cont
     cursore = addDays(cursore, -1)
   }
 
+  // Palestra
+  const sessioni = state.allenamenti.length
+  let eserciziMigliorati = 0
+  for (const s of PROGRAMMA.schede) {
+    for (const e of s.esercizi) {
+      const storia = progressione(state.allenamenti, e.id)
+      if (storia.length >= 2 && storia[storia.length - 1].peso > storia[0].peso) eserciziMigliorati++
+    }
+  }
+
   const progresso = calcolaProgresso(state, today, idx)
 
   return {
@@ -419,6 +475,8 @@ export function contestoPremi(state: AppState, today: string = todayISO()): Cont
     dietaRegistrati,
     dietaCompleti,
     dietaSerie,
+    sessioni,
+    eserciziMigliorati,
   }
 }
 

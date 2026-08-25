@@ -2,6 +2,7 @@ import type { AppState } from './types'
 import { habitStats, indexLogs, type LogIndex } from './habits'
 import { todayISO } from './dates'
 import { aderenzaGiorno, pianoDelGiorno } from './dietaLog'
+import { pesoMassimo } from './allenamentoLog'
 
 /** XP totali necessarie per raggiungere il livello indicato (livello 1 = 0 XP). */
 export function xpTotaliPerLivello(livello: number): number {
@@ -109,6 +110,16 @@ export function calcolaProgresso(
   }
   if (xpDieta) dettaglio.push({ etichetta: 'Piano alimentare', xp: xpDieta })
   xp += xpDieta
+
+  // Palestra: ogni sessione registrata vale, chiuderla vale di più.
+  let xpPalestra = 0
+  for (const sessione of state.allenamenti) {
+    xpPalestra += 25
+    if (sessione.completata) xpPalestra += 15
+    xpPalestra += sessione.esercizi.filter((e) => pesoMassimo(e.serie) !== undefined).length * 3
+  }
+  if (xpPalestra) dettaglio.push({ etichetta: 'Palestra', xp: xpPalestra })
+  xp += xpPalestra
 
   const xpDiario = state.journal.length * 6
   if (xpDiario) dettaglio.push({ etichetta: 'Diario', xp: xpDiario })

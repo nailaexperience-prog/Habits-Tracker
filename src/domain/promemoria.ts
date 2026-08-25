@@ -1,4 +1,4 @@
-import type { DietaGiorno } from './types'
+import type { ConfigProgramma, DietaGiorno } from './types'
 import { EMOJI_PASTI, NOMI_PASTI, ORARI_PASTI, ORDINE_PASTI, type PastoPianificato } from './dieta'
 import { opzioneScelta, pianoDelGiorno, vuotoDieta } from './dietaLog'
 import { addDays, startOfWeek, todayISO } from './dates'
@@ -65,6 +65,30 @@ export function programmaNotificheOggi(
     timers.push(id)
   }
   return () => timers.forEach((t) => window.clearTimeout(t))
+}
+
+/** Programma una singola notifica a un orario di oggi. Restituisce l'annullamento. */
+export function programmaNotifica(
+  orario: string,
+  titolo: string,
+  corpo: string,
+  tag: string,
+  adesso: Date = new Date(),
+): () => void {
+  if (!notificheSupportate() || Notification.permission !== 'granted') return () => {}
+  const [h, m] = orario.split(':').map(Number)
+  const quando = new Date(adesso)
+  quando.setHours(h, m, 0, 0)
+  const ritardo = quando.getTime() - adesso.getTime()
+  if (ritardo <= 0 || ritardo > 86400000) return () => {}
+  const id = window.setTimeout(() => {
+    try {
+      new Notification(titolo, { body: corpo, tag, icon: './icon-192.png' })
+    } catch {
+      // Notifiche non disponibili in questo contesto.
+    }
+  }, ritardo)
+  return () => window.clearTimeout(id)
 }
 
 /* ------------------------------------------------------------------ */
@@ -154,8 +178,49 @@ function piega(riga: string): string[] {
   return pezzi
 }
 
-export function scaricaICS(nomeFile = 'piano-alimentare.ics', oggi: string = todayISO()): void {
-  const blob = new Blob([generaICS(oggi)], { type: 'text/calendar;charset=utf-8' })
+/**
+ * Calendario dei soli allenamenti, sui giorni scelti e all'orario impostato.
+ * La scheda del giorno (A o B) dipende dall'alternanza, quindi l'evento rimanda
+ * all'app invece di indicarne una a caso.
+ */
+export function generaICSAllenamenti(config: ConfigProgramma, oggi: string = todayISO()): string {
+  const lunedi = startOfWeek(oggi, true)
+  const righe: string[] = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Livelli//Allenamento//IT',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:Allenamento',
+  ]
+  for (const g of [...config.giorni].sort((a, b) => a - b)) {
+    const data = addDays(lunedi, g)
+    const [h, m] = config.orario.split(':').map(Number)
+    const fineOra = `${String(h + 1).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+    righe.push(
+      'BEGIN:VEVENT',
+      `UID:livelli-allenamento-${g}@habits-tracker`,
+      `DTSTAMP:${timestamp(oggi, '08:00')}Z`,
+      `DTSTART:${timestamp(data, config.orario)}`,
+      `DTEND:${timestamp(data, fineOra)}`,
+      `RRULE:FREQ=WEEKLY;BYDAY=${GIORNI_ICS[g]}`,
+      'SUMMARY:🏋️ Allenamento',
+      `DESCRIPTION:${escapeICS('Apri Livelli per la scheda di oggi: le schede A e B si alternano, quindi te la dice l\'app in base all\'ultima che hai fatto.')}`,
+      'BEGIN:VALARM',
+      'TRIGGER:-PT30M',
+      'ACTION:DISPLAY',
+      'DESCRIPTION:Allenamento',
+      'END:VALARM',
+      'END:VEVENT',
+    )
+  }
+  righe.push('END:VCALENDAR')
+  return righe.flatMap(piega).join('\r\n')
+}
+
+/** Scarica un file .ics già generato. */
+export function scaricaFile(contenuto: string, nomeFile: string): void {
+  const blob = new Blob([contenuto], { type: 'text/calendar;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -165,4 +230,8 @@ export function scaricaICS(nomeFile = 'piano-alimentare.ics', oggi: string = tod
   a.click()
   document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 2000)
+}
+
+export function scaricaICS(nomeFile = 'piano-alimentare.ics', oggi: string = todayISO()): void {
+  scaricaFile(generaICS(oggi), nomeFile)
 }
