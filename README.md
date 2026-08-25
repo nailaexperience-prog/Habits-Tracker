@@ -54,8 +54,11 @@ e reimportarlo su un altro dispositivo.
 Nel repository c'è già il workflow `.github/workflows/deploy.yml`. Serve solo abilitare Pages:
 
 1. *Settings* → *Pages* → **Source: GitHub Actions**.
-2. Ogni push sul branch pubblica automaticamente l'app.
-3. L'indirizzo sarà `https://<utente>.github.io/Habits-Tracker/`.
+2. *Actions* → workflow *Pubblica su GitHub Pages* → **Re-run all jobs**
+   (finché Pages non è abilitato il passo `configure-pages` fallisce: è normale).
+3. Da lì in poi ogni push pubblica l'app da solo.
+4. L'indirizzo sarà `https://nailaexperience-prog.github.io/Habits-Tracker/`:
+   aprilo dal telefono e aggiungilo alla schermata Home.
 
 ## Sviluppo
 
